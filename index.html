@@ -1,59 +1,72 @@
 <!doctype html>
 <html>
+
 <head>
 
-<title>AI Chess</title>
+  <title>AI Chess</title>
 
-<link rel="stylesheet" type="text/css" href="static/chessboard.min.css">
+  <link rel="stylesheet" type="text/css" href="static/chessboard.css">
 
-<script src="static/jquery.min.js"></script>
-<script src="static/chessboard.min.js"></script>
+  <script src="static/jquery.js"></script>
+  <script src="static/chessboard.js"></script>
 
 </head>
-<body style="font-size: 20px;">
-<button onclick="newGame()">new game</button><br/>
-<hr/>
-<div id="board" style="width: 600px"></div>
-<p></p>
+
+<body style="font-size: 20px; position: relative;">
+  <h1 style="margin:0 auto; text-align: center;">AI Chess</h1>
+  <hr />
+  <div id="board" style="width: 75vh; margin: 0 auto;"></div>
+  <div style="display: flex; justify-content: center;">
+    <button style="
+    cursor: pointer;
+    margin: 20px auto 0px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 10px 24px;
+    text-align: center;
+    display: inline-block;" onclick="newGame()">New Game</button><br />
+  </div>
 
 
-<script type="text/javascript">
+  <script type="text/javascript">
 
-var board = ChessBoard('board', {
-  position: 'start',
-  draggable: true,
-  onDrop: onDrop
-});
+    var board = ChessBoard('board', {
+      position: 'start',
+      draggable: true,
+      onDrop: onDrop
+    });
 
-var files = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7};
-function get_square(sq) {
-  return 8*(parseInt(sq.charAt(1)) - 1) + files[sq.charAt(0)];
-}
-
-function newGame() {
-  $.get('/newgame', function(r) {
-    document.querySelector('p').innerText = '';
-    board.position(r);
-  });
-}
-
-function onDrop(source, target, piece) {
-  if(source == target) return
-
-  var promotion = piece.toLowerCase().charAt(1) == 'p' && parseInt(target.charAt(1)) == 8;
-
-  $.get('/move_coordinates', {'from': get_square(source), 'to': get_square(target), 'promotion': promotion}, function(r) {
-    if (r.includes("game over")) {
-      document.querySelector('p').innerText = 'game over';
-    } else if (r.status == 0) {
-      board.position(r);
-    } else {
-      document.querySelector('p').innerText = '';
-      board.position(r);
+    var files = { "a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7 };
+    function get_square(sq) {
+      return 8 * (parseInt(sq.charAt(1)) - 1) + files[sq.charAt(0)];
     }
-  });
-}
-</script>
 
+    function newGame() {
+      $.get('/newgame', function (r) {
+        document.querySelector('p').innerText = '';
+        board.position(r);
+      });
+    }
+
+    function onDrop(source, target, piece) {
+      if (source == target) return
+
+      var promotion = piece.toLowerCase().charAt(1) == 'p' && parseInt(target.charAt(1)) == 8;
+
+      $.get('/move_coordinates', { 'from': get_square(source), 'to': get_square(target), 'promotion': promotion }, function (r) {
+        if (r.includes("game over")) {
+          document.querySelector('p').innerText = 'game over';
+        } else if (r.status == 0) {
+          board.position(r);
+        } else {
+          document.querySelector('p').innerText = '';
+          board.position(r);
+        }
+      });
+    }
+  </script>
 </body>
+
 </html>
