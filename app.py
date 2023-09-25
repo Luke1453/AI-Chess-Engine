@@ -30,7 +30,7 @@ class Valuator(object):
 # chess board, "engine" and flask app
 s = State()
 v = Valuator()
-application = app = Flask(__name__)
+app = Flask(__name__)
 
 def computer_minimax(s, v, depth, a, b, big=False):
     if depth >= 3 or s.board.is_game_over():
@@ -93,7 +93,7 @@ def explore_leaves(s, v):
 # def to_svg(s):
 #     return base64.b64encode(chess.svg.board(board=s.board).encode('utf-8')).decode('utf-8')
 
-@application.route("/")
+@app.route("/")
 def hello():
     print("get /", flush=True)
     ret = open("index.html").read()
@@ -115,7 +115,7 @@ def computer_move(s, v):
 # moves given as coordinates of piece moved
 
 
-@application.route("/move_coordinates")
+@app.route("/move_coordinates")
 def move_coordinates():
     if not s.board.is_game_over():
         source = int(request.args.get('from', default=''))
@@ -128,7 +128,7 @@ def move_coordinates():
         # Checking if player move is legal
         if move_check not in s.board.legal_moves:
             print("illegal move", flush=True)
-            response = application.response_class(response=s.board.fen(), status=0)
+            response = app.response_class(response=s.board.fen(), status=0)
             return response
 
         # If move is legal AI makes its move
@@ -140,22 +140,22 @@ def move_coordinates():
             except Exception:
                 traceback.print_exc()
 
-        response = application.response_class(response=s.board.fen(), status=200)
+        response = app.response_class(response=s.board.fen(), status=200)
         return response
 
     print("GAME IS OVER")
-    response = application.response_class(
+    response = app.response_class(
         response="game over",
         status=200
     )
     return response
 
 
-@application.route("/newgame")
+@app.route("/newgame")
 def newgame():
     print("Game was reset!", flush=True)
     s.board.reset()
-    response = application.response_class(
+    response = app.response_class(
         response=s.board.fen(),
         status=200
     )
@@ -163,4 +163,4 @@ def newgame():
 
 
 if __name__ == "__main__":
-    application.run()
+    app.run()
