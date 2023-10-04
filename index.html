@@ -31,10 +31,8 @@
     text-align: center;
     display: inline-block;" onclick="newGame()">New Game</button><br />
 </div>
-<p></p>
 
 <script type="text/javascript">
-  var aiMove = false;
   var board = ChessBoard('board', {
     position: 'start',
     draggable: true,
@@ -48,27 +46,22 @@
 
   function newGame() {
     $.get('/newgame', function (r) {
-      document.querySelector('p').innerText = '';
       board.position(r);
     });
   }
 
   function onDrop(source, target, piece) {
-    if (source == target || aiMove) {
+    if (source == target) {
       return
     }
-
-    aiMove = true;
     var promotion = piece.toLowerCase().charAt(1) == 'p' && parseInt(target.charAt(1)) == 8;
 
     $.get('/move_coordinates', { 'from': get_square(source), 'to': get_square(target), 'promotion': promotion }, function (r) {
-      aiMove = false;
-      if (r.includes("game over")) {
-        document.querySelector('p').innerText = 'game over';
+      if (r.includes("Game Over!")) {
+        alert(r);
       } else if (r.status == 0) {
         board.position(r);
       } else {
-        document.querySelector('p').innerText = '';
         board.position(r);
       }
     });

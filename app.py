@@ -1,10 +1,8 @@
-from flask import Flask, Response, request
-import os
+from flask import Flask, request
 import chess
 import time
 import chess.svg
 import traceback
-import base64
 from state import State
 import torch
 from train import Net
@@ -12,8 +10,6 @@ from train import Net
 MAXVAL = 10000
 
 # Valuator class that uses nn to evalueate the board
-
-
 class Valuator(object):
     def __init__(self):
 
@@ -28,8 +24,8 @@ class Valuator(object):
 
 
 # chess board, "engine" and flask app
-s = State()
-v = Valuator()
+state = State()
+valuator = Valuator()
 app = Flask(__name__)
 
 def computer_minimax(s, v, depth, a, b, big=False):
@@ -86,7 +82,7 @@ def explore_leaves(s, v):
     print("Human move Eval: ", begining_eval, flush=True)
     cval, ret = computer_minimax(s, v, 0, a=-MAXVAL, b=MAXVAL, big=True)
     eta = time.time() - start
-    print("%.2f -> %.2f: explored in %.3f seconds" % (begining_eval, cval, eta), flush=True)
+    print("%.2f -> %.2f: explored %d moves in %.3f seconds" % (begining_eval, cval, len(ret), eta), flush=True)
     return ret
 
 
@@ -97,55 +93,58 @@ def explore_leaves(s, v):
 def hello():
     print("get /", flush=True)
     ret = open("index.html").read()
-    return ret.replace('start', s.board.fen())
+    return ret.replace('start', state.board.fen())
 
 
-def computer_move(s, v):
+def computer_move(state, valuator):
     # computer moves
-    moves = sorted(explore_leaves(s, v), key=lambda x: x[0], reverse=s.board.turn)
+    moves = sorted(explore_leaves(state, valuator), key=lambda x: x[0], reverse=state.board.turn)
     if len(moves) == 0:
         return
+    
+    # print(*moves, sep='\n', flush=True)
     print("top 3:", flush=True)
-    print(moves, flush=True)
     for i, m in enumerate(moves[0:3]):
         print("  ", m, flush=True)
-    print(s.board.turn, "moving", moves[0][1], flush=True)
-    s.board.push(moves[0][1])
+    print(state.board.turn, "moving", moves[0][1], flush=True)
+    
+    state.board.push(moves[0][1])
+
+
+
 
 # moves given as coordinates of piece moved
-
-
 @app.route("/move_coordinates")
 def move_coordinates():
-    if not s.board.is_game_over():
+    if not state.board.is_game_over():
         source = int(request.args.get('from', default=''))
         target = int(request.args.get('to', default=''))
         promotion = True if request.args.get('promotion', default='') == 'true' else False
 
-        move = s.board.san(chess.Move(source, target, promotion=chess.QUEEN if promotion else None))
+        move = state.board.san(chess.Move(source, target, promotion=chess.QUEEN if promotion else None))
         move_check = chess.Move(source, target, promotion=chess.QUEEN if promotion else None)
 
         # Checking if player move is legal
-        if move_check not in s.board.legal_moves:
+        if move_check not in state.board.legal_moves:
             print("illegal move", flush=True)
-            response = app.response_class(response=s.board.fen(), status=0)
+            response = app.response_class(response=state.board.fen(), status=0)
             return response
 
         # If move is legal AI makes its move
         if move is not None and move != "":
             print("human moves", move, flush=True)
             try:
-                s.board.push_san(move)
-                computer_move(s, v)
+                state.board.push_san(move)
+                computer_move(state, valuator)
             except Exception:
                 traceback.print_exc()
 
-        response = app.response_class(response=s.board.fen(), status=200)
+        response = app.response_class(response=state.board.fen(), status=200)
         return response
 
     print("GAME IS OVER")
     response = app.response_class(
-        response="game over",
+        response="Game Over!",
         status=200
     )
     return response
@@ -154,9 +153,9 @@ def move_coordinates():
 @app.route("/newgame")
 def newgame():
     print("Game was reset!", flush=True)
-    s.board.reset()
+    state.board.reset()
     response = app.response_class(
-        response=s.board.fen(),
+        response=state.board.fen(),
         status=200
     )
     return response
