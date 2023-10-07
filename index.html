@@ -45,26 +45,36 @@
   }
 
   function newGame() {
-    $.get('/newgame', function (r) {
-      board.position(r);
-    });
+    board.position('start');
   }
 
   function onDrop(source, target, piece) {
     if (source == target) {
       return
     }
-    var promotion = piece.toLowerCase().charAt(1) == 'p' && parseInt(target.charAt(1)) == 8;
 
-    $.get('/move_coordinates', { 'from': get_square(source), 'to': get_square(target), 'promotion': promotion }, function (r) {
-      if (r.includes("Game Over!")) {
-        alert(r);
-      } else if (r.status == 0) {
-        board.position(r);
-      } else {
-        board.position(r);
-      }
-    });
+    var fen = board.fen()
+    var promotion = piece.toLowerCase().charAt(1) == 'p'
+      && parseInt(target.charAt(1)) == 8;
+
+    board.draggable(false);
+    $.get('/move_coordinates',
+      {
+        'from': get_square(source),
+        'to': get_square(target),
+        'fen': fen,
+        'promotion': promotion
+      }, function (r) {
+
+        if (r.includes("Game Over!")) {
+          alert(r);
+        } else {
+          // legal move returns updated state
+          // illegal state returns old state
+          board.position(r);
+          board.draggable(true);
+        }
+      });
   }
 </script>
 

@@ -23,13 +23,12 @@ class Valuator(object):
         return float(output.data[0][0])
 
 
-# chess board, "engine" and flask app
-state = State()
+# "engine" and flask app
 valuator = Valuator()
 app = Flask(__name__)
 
 def computer_minimax(s, v, depth, a, b, big=False):
-    if depth >= 3 or s.board.is_game_over():
+    if depth >= 3:
         return v(s)
 
     # white is maximizing player
@@ -86,37 +85,44 @@ def explore_leaves(s, v):
     return ret
 
 
-# def to_svg(s):
-#     return base64.b64encode(chess.svg.board(board=s.board).encode('utf-8')).decode('utf-8')
-
-@app.route("/")
-def hello():
-    print("get /", flush=True)
-    ret = open("index.html").read()
-    return ret.replace('start', state.board.fen())
-
-
 def computer_move(state, valuator):
     # computer moves
     moves = sorted(explore_leaves(state, valuator), key=lambda x: x[0], reverse=state.board.turn)
     if len(moves) == 0:
         return
     
-    # print(*moves, sep='\n', flush=True)
     print("top 3:", flush=True)
     for i, m in enumerate(moves[0:3]):
         print("  ", m, flush=True)
-    print(state.board.turn, "moving", moves[0][1], flush=True)
+    print("black moving", moves[0][1], flush=True)
     
     state.board.push(moves[0][1])
 
 
+def game_over(outcome, turn):
+    print("GAME IS OVER")
+    response = app.response_class(
+        response=f"Game Over! {outcome.termination.name}, {turn} won!",
+        status=200
+    )
+    return response
+
+
+@app.route("/")
+def hello():
+    print("get /", flush=True)
+    ret = open("index.html").read()
+    return ret
 
 
 # moves given as coordinates of piece moved
 @app.route("/move_coordinates")
 def move_coordinates():
-    if not state.board.is_game_over():
+    clientFen = request.args.get('fen', default='')
+    state = State(board=chess.Board(clientFen))
+
+    gameOutcome = state.board.outcome() 
+    if gameOutcome is None:
         source = int(request.args.get('from', default=''))
         target = int(request.args.get('to', default=''))
         promotion = True if request.args.get('promotion', default='') == 'true' else False
@@ -127,6 +133,8 @@ def move_coordinates():
         # Checking if player move is legal
         if move_check not in state.board.legal_moves:
             print("illegal move", flush=True)
+            
+            # returning not updated state
             response = app.response_class(response=state.board.fen(), status=0)
             return response
 
@@ -135,6 +143,9 @@ def move_coordinates():
             print("human moves", move, flush=True)
             try:
                 state.board.push_san(move)
+                if state.board.is_game_over():
+                    return game_over(state.board.outcome(), "white")
+                
                 computer_move(state, valuator)
             except Exception:
                 traceback.print_exc()
@@ -142,23 +153,8 @@ def move_coordinates():
         response = app.response_class(response=state.board.fen(), status=200)
         return response
 
-    print("GAME IS OVER")
-    response = app.response_class(
-        response="Game Over!",
-        status=200
-    )
-    return response
-
-
-@app.route("/newgame")
-def newgame():
-    print("Game was reset!", flush=True)
-    state.board.reset()
-    response = app.response_class(
-        response=state.board.fen(),
-        status=200
-    )
-    return response
+    else:
+        return game_over(gameOutcome, "black")
 
 
 if __name__ == "__main__":
