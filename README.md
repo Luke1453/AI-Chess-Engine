@@ -1,7 +1,7 @@
 # AI-Chess-Engine
 
 Neural-network based chess engine that runs as flask web-app in users’ browser.
-this was a college project that was developed to help grasp the concepts of convolutional neural network and how they can be used. 
+this was a college project that was developed to help grasp the concepts of convolutional neural network and how they can be used.
 In addition to that it serwed as an exercise in writing some Front-End code.
 
 ## The goal of the project
